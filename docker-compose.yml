@@ -1,0 +1,46 @@
+services:
+  chamilo-db:
+    image: mariadb:10.11
+    container_name: chamilo-db
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    command: [
+      "mysqld",
+      "--innodb-buffer-pool-size=64M",
+      "--max-connections=30"
+    ]
+    environment:
+      MYSQL_ROOT_PASSWORD: chamilo_root_pass
+      MYSQL_DATABASE: chamilo
+      MYSQL_USER: chamilo
+      MYSQL_PASSWORD: chamilo
+    volumes:
+      - ./chamilo_db_data:/var/lib/mysql
+
+  chamilo-app:
+    build: build
+    container_name: chamilo-app
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 350M
+    volumes:
+      # Настоящий именованный волюм, привязанный к локальной папке
+      - ./chamilo:/var/www/chamilo
+
+  chamilo-nginx:
+    image: nginx:alpine
+    container_name: chamilo-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      # Подключаем ту же самую директорию в режиме "только чтение"
+      - ./chamilo:/var/www/chamilo:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - chamilo-app
